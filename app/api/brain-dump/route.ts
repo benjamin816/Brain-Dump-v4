@@ -244,7 +244,7 @@ async function handleCalendarEvent(
   // 2. --- TEMPORARY MANUAL TOKEN SETUP ---
   // 🚨 PASTE YOUR LATEST, CORRECTED ACCESS TOKEN HERE!
   // The one you got with the 'access_type=offline' URL.
-  const MANUAL_ACCESS_TOKEN = "PASTE_YOUR_VERY_LONG_ACCESS_TOKEN_HERE"; 
+  const MANUAL_ACCESS_TOKEN = ""; 
   
   if (MANUAL_ACCESS_TOKEN === "PASTE_YOUR_VERY_LONG_ACCESS_TOKEN_HERE") {
     console.log("Skipping Calendar Event: Manual token is not set.");
