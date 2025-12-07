@@ -3,9 +3,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { google } from 'googleapis';
 
-const REDIRECT_URI = process.env.VERCEL_URL 
-  ? `https://${process.env.VERCEL_URL}/api/auth/callback` 
-  : 'http://localhost:3000/api/auth/callback';
+const REDIRECT_URI = 'https://brain-dump-v4-5zp37848s-benjamin-carvers-projects.vercel.app/api/auth/callback';
 
 export async function GET(request: NextRequest) {
   const code = request.nextUrl.searchParams.get('code');
