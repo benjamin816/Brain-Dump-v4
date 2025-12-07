@@ -168,39 +168,6 @@ Note: ${userNote}
 JSON:
 `;
 
----
-
-**Final Step:** Copy the entire block above, paste it into your `route.ts` file, save the change, and **Redeploy** on Vercel. This is the finished, powerful prompt!
-
-### EXAMPLES
-Note: Test this app at 5p today
-JSON:
-{
-  "item_type": "task",
-  "time_bucket": "2025-12-07T17:00:00-05:00",
-  "category": "admin"
-}
-
-Note: Brainstorm new logo ideas for client
-JSON:
-{
-  "item_type": "task",
-  "time_bucket": "upcoming",
-  "category": "work"
-}
-
-Note: Post project update on Instagram tomorrow at 10am
-JSON:
-{
-  "item_type": "task",
-  "time_bucket": "2025-12-08T10:00:00-05:00",
-  "category": "social_marketing"
-}
-
-Note: ${userNote}
-JSON:
-`;
-
   const res = await fetch(
     "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=" +
       apiKey,
