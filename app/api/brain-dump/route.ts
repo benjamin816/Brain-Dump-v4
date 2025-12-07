@@ -211,7 +211,7 @@ const category = parsed.category ?? "none"; // <<--- Grabs the single word as a 
     return {
       item_type: "idea",
       time_bucket: "none",
-      category: ["parse_error"],
+      category: "parse_error",
     };
   }
 }
