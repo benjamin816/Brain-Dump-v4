@@ -21,27 +21,67 @@ async function analyzeWithGemini(text: string): Promise<AnalysisResult> {
   }
 
   const prompt = `
-You are helping organize personal "brain dump" notes.
+You classify short personal "brain dump" notes into STRUCTURED JSON.
 
-Given the following note text, decide:
+### YOUR JOB
+Given ONE short note, you must decide:
 
-1) item_type: one of
-   - "task" (something to do)
-   - "event" (something happening at a specific time or place)
-   - "idea" (brainstorm, thought, future possibility)
-   - "education" (notes, learning material)
-   - "important_info" (facts, reference info to remember)
+1) "item_type" (what kind of thing it is)
+2) "time_bucket" (when it seems to belong)
+3) "categories" (1–3 simple tags)
 
-2) time_bucket: one of
-   - "today" (clearly meant for today)
-   - "this_week" (within this week)
-   - "upcoming" (future, but not clearly today or this week)
-   - "none" (no clear timing)
+### ITEM TYPE (CHOOSE ONE ONLY)
+- "task"           = something the user should do
+- "event"          = something happening at a specific time or place
+- "idea"           = brainstorm, optional future thing, not clearly scheduled
+- "education"      = notes, learning material
+- "important_info" = facts or info they want to remember
 
-3) categories: a short list of 1-4 topic tags (lowercase, single words) like:
-   ["work", "clients", "health", "money", "home", "travel"]
+If the note contains a clear time expression like "tomorrow", a clock time, a specific date, or "next week", it is usually a "task" or "event", NOT an "idea".
 
-Return ONLY valid JSON in this format and nothing else:
+### TIME BUCKET (CHOOSE ONE ONLY)
+- "today"      = clearly meant for today (e.g. "today", "tonight", "this afternoon")
+- "this_week"  = clearly this week (e.g. "tomorrow", "later this week", "in a few days")
+- "upcoming"   = clearly in the future but not specifically today/this week (e.g. any explicit future date farther out)
+- "none"       = no timing info at all
+
+Examples:
+- "Email client today"         → time_bucket = "today"
+- "Dentist appointment tomorrow at 3pm" → time_bucket = "this_week"
+- "Trip to New York in October" → time_bucket = "upcoming"
+- "I like the idea of buying a duplex someday" → time_bucket = "none"
+
+### CATEGORIES (ALWAYS 1–3 TAGS)
+Pick 1–3 single-word, lowercase tags from or similar to:
+["personal", "work", "health", "money", "food", "home", "travel", "family", "clients", "learning", "admin"]
+
+Choose at least one category. Never return an empty array.
+
+Examples:
+- "Dentist appointment tomorrow at 3pm"
+  {
+    "item_type": "event",
+    "time_bucket": "this_week",
+    "categories": ["health"]
+  }
+
+- "Finish editing Raleigh NC YouTube video tonight"
+  {
+    "item_type": "task",
+    "time_bucket": "today",
+    "categories": ["work"]
+  }
+
+- "Eat a taco tomorrow at 4p"
+  {
+    "item_type": "event",
+    "time_bucket": "this_week",
+    "categories": ["personal", "food"]
+  }
+
+### OUTPUT FORMAT (IMPORTANT)
+Return ONLY valid JSON, no backticks, no markdown, no explanation.
+The JSON must match exactly this shape:
 
 {
   "item_type": "task" | "event" | "idea" | "education" | "important_info",
@@ -49,7 +89,8 @@ Return ONLY valid JSON in this format and nothing else:
   "categories": ["tag1", "tag2"]
 }
 
-Note text:
+Now classify this note:
+
 """${text}"""
 `;
 
