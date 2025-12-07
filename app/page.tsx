@@ -1,6 +1,7 @@
 import { google } from "googleapis";
 
 export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 
 type Idea = {
   text: string;
