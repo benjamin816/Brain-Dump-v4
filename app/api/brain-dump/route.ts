@@ -77,15 +77,16 @@ Now classify this note:
     }
   );
 
+// --- NEW CODE BLOCK ---
   if (!res.ok) {
     const errText = await res.text();
-    console.error("Gemini API error:", errText);
-    return {
-      item_type: "idea",
-      time_bucket: "none",
-      categories: ["http_error"],
-    };
+    // 🚨 NEW LINE 1: This logs the secret error number (like 403 or 429)
+    console.error("Gemini API FAILED. Status:", res.status, "Body:", errText); 
+    
+    // 🚨 NEW LINE 2: This makes the app crash, forcing Vercel to log the error.
+    throw new Error(`Gemini API call failed with status ${res.status}.`);
   }
+// --- END NEW CODE BLOCK ---
 
   const data = await res.json();
   const rawText: string =
