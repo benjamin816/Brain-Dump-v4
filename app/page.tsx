@@ -2,9 +2,9 @@
 
 import { useState, useEffect, useMemo } from 'react';
 
+// Type definition for a single brain dump item (6 columns of data)
 import Chatbot from './Chatbot'; // <--- ADD THIS LINE
 
-// Type definition for a single brain dump item (6 columns of data)
 interface BrainDumpItem {
   text: string;
   itemType: string;
@@ -189,7 +189,7 @@ export default function DashboardPage() {
             ))}
           </div>
 
-          {/* Category Tabs */}
+{/* Category Tabs */}
           <div style={{ marginBottom: '15px', borderBottom: '1px solid #eee', paddingBottom: '10px' }}>
             <h4>Filter by Category:</h4>
             {CATEGORY_TABS.map((cat) => (
@@ -212,21 +212,6 @@ export default function DashboardPage() {
           </div>
 
           <h2>{activeCategory ? `Category: ${activeCategory}` : activeTab} ({filteredData.length})</h2>
-
-          // Inside the final return of app/page.tsx:
-return (
-  <main style={{ maxWidth: 800, margin: '2rem auto', padding: '1rem' }}>
-    {/* ... (Your existing code for h1, CalendarConnect, and tabs) ... */}
-
-    {/* Data Display Area */}
-    {/* ... (Data filtering and display code is here) ... */}
-
-    {/* ⬇️ ⬇️ ⬇️ ADD THE CHATBOT HERE! ⬇️ ⬇️ ⬇️ */}
-    <Chatbot /> 
-    {/* ⬆️ ⬆️ ⬆️ END OF CHATBOT ⬆️ ⬆️ ⬆️ */}
-
-  </main>
-);
           
           {/* Data Display Area */}
           {filteredData.length > 0 ? (
@@ -234,6 +219,10 @@ return (
           ) : (
             <p>No notes found in this view.</p>
           )}
+
+          {/* ⬇️ ⬇️ ⬇️ ADD THE CHATBOT HERE! ⬇️ ⬇️ ⬇️ */}
+          <Chatbot />
+          {/* ⬆️ ⬆️ ⬆️ END OF CHATBOT ⬆️ ⬆️ ⬆️ */}
         </>
       )}
     </main>
