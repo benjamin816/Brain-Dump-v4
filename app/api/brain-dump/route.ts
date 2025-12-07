@@ -241,22 +241,25 @@ async function handleCalendarEvent(
     return;
   }
 
-  // 2. --- TEMPORARY MANUAL TOKEN SETUP ---
-  // 🚨 PASTE YOUR LATEST, CORRECTED ACCESS TOKEN HERE!
-  // The one you got with the 'access_type=offline' URL.
-  const MANUAL_ACCESS_TOKEN = ""; 
+ // app/api/brain-dump/route.ts (inside handleCalendarEvent)
+
+// 2. --- SECURE PRODUCTION AUTH SETUP ---
+
+  const REFRESH_TOKEN = process.env.GOOGLE_REFRESH_TOKEN;
   
-  if (MANUAL_ACCESS_TOKEN === "PASTE_YOUR_VERY_LONG_ACCESS_TOKEN_HERE") {
-    console.log("Skipping Calendar Event: Manual token is not set.");
+  if (!REFRESH_TOKEN) {
+    console.log("Skipping Calendar Event: GOOGLE_REFRESH_TOKEN is not set.");
     return;
   }
 
-  // Create a client to sign in to Google, using the token you pasted in
-  const auth = new OAuth2Client(); 
-  auth.setCredentials({ 
-    access_token: MANUAL_ACCESS_TOKEN 
-  });
-  // --- END MANUAL TOKEN SETUP ---
+  const auth = new OAuth2Client(
+    process.env.GOOGLE_CLIENT_ID,
+    process.env.GOOGLE_CLIENT_SECRET,
+  );
+  
+  auth.setCredentials({ refresh_token: REFRESH_TOKEN });
+  
+// --- END SECURE PRODUCTION AUTH SETUP ---
   
 
   const calendar = google.calendar({ version: 'v3', auth });
