@@ -2,6 +2,8 @@
 
 import { useState, useEffect, useMemo } from 'react';
 
+import Chatbot from './Chatbot'; // <--- ADD THIS LINE
+
 // Type definition for a single brain dump item (6 columns of data)
 interface BrainDumpItem {
   text: string;
@@ -210,6 +212,21 @@ export default function DashboardPage() {
           </div>
 
           <h2>{activeCategory ? `Category: ${activeCategory}` : activeTab} ({filteredData.length})</h2>
+
+          // Inside the final return of app/page.tsx:
+return (
+  <main style={{ maxWidth: 800, margin: '2rem auto', padding: '1rem' }}>
+    {/* ... (Your existing code for h1, CalendarConnect, and tabs) ... */}
+
+    {/* Data Display Area */}
+    {/* ... (Data filtering and display code is here) ... */}
+
+    {/* ⬇️ ⬇️ ⬇️ ADD THE CHATBOT HERE! ⬇️ ⬇️ ⬇️ */}
+    <Chatbot /> 
+    {/* ⬆️ ⬆️ ⬆️ END OF CHATBOT ⬆️ ⬆️ ⬆️ */}
+
+  </main>
+);
           
           {/* Data Display Area */}
           {filteredData.length > 0 ? (
