@@ -4,14 +4,20 @@ import { NextRequest, NextResponse } from 'next/server';
 import { GoogleGenAI, Type } from '@google/genai'; 
 
 // Initialize the Gemini client by passing the key from the environment variables
-const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY }); // ⬅️ Ensure this line is correct
+const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 
-// ... (Keep the systemInstruction definition here) ...
+// Define the system instructions (this is the chatbot's personality and job)
+const systemInstruction = `You are a helpful and clear digital assistant that manages a user's Brain Dump. 
+  Your primary goals are to: 
+  1) Use the provided tools when the user's request requires action (like adding an event).
+  2) When you cannot use a tool, respond to the user's question directly.
+  3) Respond in a fourth-grade reading level.
+  4) Be concise.`;
 
 // Placeholder for the real calendar creation logic.
 // This function is executed locally when Gemini decides to call it.
 const createCalendarEvent = (title: string, date: string, time: string): string => {
-  // We'll replace this with the actual Google Calendar API call soon.
+  // We will integrate the actual Google Calendar API call here in the next step.
   // For now, it returns a structured success message for Gemini to read.
   return JSON.stringify({
     success: true,
@@ -21,8 +27,6 @@ const createCalendarEvent = (title: string, date: string, time: string): string 
   });
 };
 
-// ... (Keep the calendarToolSchema definition here, ensuring Type.STRING, etc., are used) ...
-
 // This is the structure (schema) that describes the function to Gemini
 const calendarToolSchema = {
   functionDeclarations: [
@@ -30,18 +34,18 @@ const calendarToolSchema = {
       name: 'createCalendarEvent',
       description: 'Creates a new event on the user\'s Google Calendar. Use this for events, meetings, appointments, or anything with a specific date and time.',
       parameters: {
-        type: Type.OBJECT, // ⬅️ FIXED!
+        type: Type.OBJECT,
         properties: {
           title: {
-            type: Type.STRING, // ⬅️ FIXED!
+            type: Type.STRING,
             description: 'The short, descriptive title for the event, e.g., "Dentist Appointment" or "Meeting with John".',
           },
           date: {
-            type: Type.STRING, // ⬅️ FIXED!
+            type: Type.STRING,
             description: 'The date for the event in YYYY-MM-DD format, or a relative date like "today", "tomorrow", "next Monday", or "Dec 15".',
           },
           time: {
-            type: Type.STRING, // ⬅️ FIXED!
+            type: Type.STRING,
             description: 'The specific time for the event, e.g., "3:00 PM", or a duration like "2 hours" if only a start time is given.',
           },
         },
@@ -50,9 +54,7 @@ const calendarToolSchema = {
     },
   ],
 };
-// ... rest of the file continues below ...
 
-// app/api/chat/route.ts (REPLACE THE ENTIRE POST FUNCTION)
 
 export async function POST(request: NextRequest) {
   try {
