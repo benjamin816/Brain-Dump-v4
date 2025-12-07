@@ -1,4 +1,43 @@
 import { NextRequest, NextResponse } from "next/server";
+import { google } from "googleapis";
+
+export const runtime = "nodejs";
+
+async function appendToSheet(text: string, createdAt: string | null) {
+  const email = process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL;
+  const privateKey = process.env.GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY;
+  const spreadsheetId = process.env.GOOGLE_SHEETS_ID;
+
+  if (!email || !privateKey || !spreadsheetId) {
+    throw new Error("Missing Google Sheets environment variables.");
+  }
+
+  const auth = new google.auth.JWT(
+    email,
+    undefined,
+    // if the key comes in with \n, this fixes it
+    privateKey.replace(/\\n/g, "\n"),
+    ["https://www.googleapis.com/auth/spreadsheets"]
+  );
+
+  const sheets = google.sheets({ version: "v4", auth });
+
+  const row = [
+    text,
+    createdAt ?? "",
+    new Date().toISOString(),
+  ];
+
+  await sheets.spreadsheets.values.append({
+    spreadsheetId,
+    // if your tab is not named "Sheet1", change this to your tab name
+    range: "Sheet1!A:C",
+    valueInputOption: "RAW",
+    requestBody: {
+      values: [row],
+    },
+  });
+}
 
 export async function POST(request: NextRequest) {
   try {
@@ -16,23 +55,18 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    console.log("New brain dump received:", {
-      text,
-      createdAt,
-      receivedAt: new Date().toISOString(),
-    });
+    await appendToSheet(text, createdAt);
 
     return NextResponse.json({ ok: true });
   } catch (error) {
     console.error("Error in /api/brain-dump:", error);
     return NextResponse.json(
-      { ok: false, error: "Invalid JSON body." },
-      { status: 400 }
+      { ok: false, error: "Server error." },
+      { status: 500 }
     );
   }
 }
 
-// Simple health check for your own testing
 export async function GET() {
   return NextResponse.json({
     ok: true,
