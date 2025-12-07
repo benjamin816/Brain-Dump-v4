@@ -22,6 +22,10 @@ async function analyzeWithGemini(text: string): Promise<AnalysisResult> {
 
   const prompt = `
 You classify short personal "brain dump" notes into STRUCTURED JSON.
+**NEVER include any introductory text, commentary, or markdown (like \`\`\`) outside of the JSON object.**
+### YOUR JOB
+Given ONE short note, you must decide:
+//... (the rest of your prompt is fine)
 
 ### YOUR JOB
 Given ONE short note, you must decide:
@@ -91,6 +95,10 @@ Now classify this note:
   const data = await res.json();
   const rawText: string =
     data?.candidates?.[0]?.content?.parts?.[0]?.text ?? "";
+
+  // --- NEW CLEANUP CODE ---
+  const cleanedText = rawText.replace(/```json|```/g, '').trim();
+  // --- END NEW CLEANUP CODE ---
 
   try {
     const parsed = JSON.parse(rawText);
