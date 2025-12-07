@@ -200,7 +200,7 @@ JSON:
   // --- END NEW CLEANUP CODE ---
 
   try {
-    const parsed = JSON.parse(rawText);
+    const parsed = JSON.parse(cleanedText);
     const item_type = parsed.item_type ?? "idea";
     const time_bucket = parsed.time_bucket ?? "none";
     const category: string[] = Array.isArray(parsed.category)
