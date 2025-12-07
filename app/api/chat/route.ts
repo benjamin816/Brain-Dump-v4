@@ -6,6 +6,43 @@ import { GoogleGenAI } from '@google/genai';
 // Initialize the Gemini client (uses the GEMINI_API_KEY from Vercel)
 const ai = new GoogleGenAI({});
 
+// app/api/chat/route.ts
+
+// NOTE: We will fill out the actual logic for this function later.
+// For now, it just serves as a description for Gemini.
+const createCalendarEvent = (title: string, date: string, time: string) => {
+  console.log(`Tool called: createCalendarEvent - Title: ${title}, Date: ${date}, Time: ${time}`);
+  return "Event placeholder created successfully. Waiting for full implementation.";
+};
+
+// This is the structure (schema) that describes the function to Gemini
+const calendarToolSchema = {
+  functionDeclarations: [
+    {
+      name: 'createCalendarEvent',
+      description: 'Creates a new event on the user\'s Google Calendar. Use this for events, meetings, appointments, or anything with a specific date and time.',
+      parameters: {
+        type: 'OBJECT',
+        properties: {
+          title: {
+            type: 'STRING',
+            description: 'The short, descriptive title for the event, e.g., "Dentist Appointment" or "Meeting with John".',
+          },
+          date: {
+            type: 'STRING',
+            description: 'The date for the event in YYYY-MM-DD format, or a relative date like "today", "tomorrow", "next Monday", or "Dec 15".',
+          },
+          time: {
+            type: 'STRING',
+            description: 'The specific time for the event, e.g., "3:00 PM", or a duration like "2 hours" if only a start time is given.',
+          },
+        },
+        required: ['title', 'date'],
+      },
+    },
+  ],
+};
+
 export async function POST(request: NextRequest) {
   try {
     const { history, prompt } = await request.json();
@@ -30,13 +67,17 @@ export async function POST(request: NextRequest) {
     }));
     contents.push({ role: 'user', parts: [{ text: prompt }] });
     
+// app/api/chat/route.ts (inside POST function)
+
     // 3. Call the model and stream the response back
     const response = await ai.models.generateContentStream({
       model: 'gemini-2.5-flash',
       contents: contents,
       config: {
         systemInstruction: systemInstruction,
-        // Tools will go here later!
+        // ⬇️ ⬇️ ⬇️ ADD THIS LINE ⬇️ ⬇️ ⬇️
+        tools: [calendarToolSchema], 
+        // ⬆️ ⬆️ ⬆️ END OF ADDITION ⬆️ ⬆️ ⬆️
       },
     });
 
