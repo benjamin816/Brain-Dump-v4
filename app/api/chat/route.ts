@@ -3,8 +3,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { GoogleGenAI, Type } from '@google/genai'; // ⬅️ ADDED 'Type' HERE!
 
-// Initialize the Gemini client (uses the GEMINI_API_KEY from Vercel)
-const ai = new GoogleGenAI({});
+// app/api/chat/route.ts
+
+// Initialize the Gemini client by passing the key from the environment variables
+const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY }); // ⬅️ FIXED!
 
 // app/api/chat/route.ts (after imports)
 
