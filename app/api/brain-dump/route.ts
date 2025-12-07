@@ -124,15 +124,41 @@ async function appendToSheet(
   analysis: AnalysisResult
 ) {
   const email = process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL;
-  const privateKey = process.env.GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY;
+  const rawPrivateKey = process.env.GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY;
   const spreadsheetId = process.env.GOOGLE_SHEETS_ID;
+
+  // Type-safe guard so TS stops complaining
+  if (!email || !rawPrivateKey || !spreadsheetId) {
+    throw new Error("Missing Google Sheets environment variables.");
+  }
+
+  const privateKey = rawPrivateKey.replace(/\\n/g, "\n");
 
   const auth = new google.auth.JWT(
     email,
     undefined,
-    privateKey.replace(/\\n/g, "\n"),
+    privateKey,
     ["https://www.googleapis.com/auth/spreadsheets"]
   );
+
+  const sheets = google.sheets({ version: "v4", auth });
+
+  const row = [
+    text,
+    createdAt ?? "",
+    new Date().toISOString(),
+    analysis.item_type,
+    analysis.time_bucket,
+    analysis.categories.join(", "),
+  ];
+
+  await sheets.spreadsheets.values.append({
+    spreadsheetId,
+    range: "Sheet1!A:F",
+    valueInputOption: "RAW",
+    requestBody: { values: [row] },
+  });
+}
 
   const sheets = google.sheets({ version: "v4", auth });
 
