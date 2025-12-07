@@ -20,53 +20,185 @@ async function analyzeWithGemini(text: string): Promise<AnalysisResult> {
     };
   }
 
-  const prompt = `
-You classify short personal "brain dump" notes into STRUCTURED JSON.
-**NEVER include any introductory text, commentary, or markdown (like \`\`\`) outside of the JSON object.**
-### YOUR JOB
-Given ONE short note, you must decide:
-//... (the rest of your prompt is fine)
+const prompt = `
+You are a highly-accurate data extraction and classification agent.
+The current date and time in the user's timezone (EST) is: ${new Date().toISOString()}. Use this as the reference point for all relative date/time calculations (e.g., "today", "tomorrow", "5p").
+**NEVER include any introductory text, commentary, or markdown (like \`\`\`) outside of the final JSON object.**
 
 ### YOUR JOB
-Given ONE short note, you must decide:
-
-1) "item_type" (what kind of thing it is)
-2) "time_bucket" (when it seems to belong)
-3) "categories" (1–3 simple tags)
+Given ONE short user note, you must classify it into a single JSON object.
 
 ### ITEM TYPE (CHOOSE ONE ONLY)
-- "task"           = something the user should do
-- "event"          = something happening at a specific time or place
-- "idea"           = brainstorm, optional future thing, not clearly scheduled
-- "education"      = notes, learning material
-- "important_info" = facts or info they want to remember
-
-If the note contains a clear time expression like "tomorrow", a clock time, a specific date, or "next week", it is usually a "task" or "event", NOT an "idea".
+- "task"           = A discrete action or to-do item that may or may not have a date but never a specific time (e.g., "call the doctor").
+- "event"          = A fixed appointment or scheduled happening (e.g., "meeting at 10am").
+- "idea"           = Brainstorming, a concept, or optional future project. Ideas do NOT have specific time/day constraints.
+- "education"      = Learning material, research, or notes taken in a meeting, class, video, book, or event.
+- "important_info" = Facts, account numbers, or information to be stored (e.g., "password hint").
 
 ### TIME BUCKET (CHOOSE ONE ONLY)
-- "today"      = clearly meant for today (e.g. "today", "tonight", "this afternoon")
-- "this_week"  = clearly this week (e.g. "tomorrow", "later this week", "in a few days")
-- "upcoming"   = clearly in the future but not specifically today/this week (e.g. any explicit future date farther out)
-- "none"       = no timing info at all
+**The value for "time_bucket" must be EITHER a specific date/time string OR a time range category.**
 
-### CATEGORIES (ALWAYS 1–3 TAGS)
-Pick 1–3 single-word, lowercase tags from or similar to:
-["personal", "work", "health", "money", "food", "home", "travel", "family", "clients", "learning", "admin"]
+1.  **SPECIFIC DATE/TIME:** If the note contains a specific time or date (e.g., "5p today", "next Monday at 10am"), you MUST convert it to a full **ISO 8601 date/time string** (example: "2025-12-07T17:00:00-05:00"). Use the current date provided above as the reference, and use context clues to determine AM/PM (e.g., "5p" = 17:00).
+2.  **TIME RANGE CATEGORY:** If no specific time is found, use one of the following:
+    - "today"       = Clearly meant for today.
+    - "this_week"   = Clearly for this week, but not today (e.g., "tomorrow").
+    - "upcoming"    = Clearly in the future but not this week.
+3. Only choose a time bucket for Tasks and Events.
 
-Choose at least one category. Never return an empty array.
+### CATEGORY (CHOOSE ONE ONLY)
+**"category" MUST be one and only one single-word, lowercase tag.**
+Choose the single best fit from this final list:
+["personal", "work", "creative", "social_marketing", "health", "money", "food", "home", "travel", "learning", "admin", "wishlist"]
 
 ### OUTPUT FORMAT (IMPORTANT)
-Return ONLY valid JSON, no backticks, no markdown, no explanation.
+Return ONLY valid JSON.
 
 {
-  "item_type": "task" | "event" | "idea" | "education" | "important_info",
-  "time_bucket": "today" | "this_week" | "upcoming" | "none",
-  "categories": ["tag1", "tag2"]
+  "item_type": "string",
+  "time_bucket": "string", // EITHER ISO 8601 or a time range (e.g., "today")
+  "category": "string"    // Only one tag
 }
 
-Now classify this note:
+### EXAMPLES
+Note: Call Sarah to wish her happy birthday
+JSON:
+{
+  "item_type": "task",
+  "time_bucket": "today",
+  "category": "personal"
+}
 
-"""${text}"""
+Note: Send finalized client proposal to Johnson Corp by 4p tomorrow
+JSON:
+{
+  "item_type": "task",
+  "time_bucket": "2025-12-08T16:00:00-05:00",
+  "category": "work"
+}
+
+Note: Sketch new character design concept
+JSON:
+{
+  "item_type": "task",
+  "time_bucket": "upcoming",
+  "category": "creative"
+}
+
+Note: Schedule three posts for next week's campaign
+JSON:
+{
+  "item_type": "task",
+  "time_bucket": "this_week",
+  "category": "social_marketing"
+}
+
+Note: Gym session at 6am on Wednesday
+JSON:
+{
+  "item_type": "event",
+  "time_bucket": "2025-12-10T06:00:00-05:00",
+  "category": "health"
+}
+
+Note: Check bank account for wire transfer
+JSON:
+{
+  "item_type": "task",
+  "time_bucket": "this_week",
+  "category": "money"
+}
+
+Note: Need to buy chicken, eggs, and milk
+JSON:
+{
+  "item_type": "task",
+  "time_bucket": "this_week",
+  "category": "food"
+}
+
+Note: Research cost of new roofing shingles
+JSON:
+{
+  "item_type": "task",
+  "time_bucket": "upcoming",
+  "category": "home"
+}
+
+Note: Look up flights for the June trip to Denver
+JSON:
+{
+  "item_type": "task",
+  "time_bucket": "this_week",
+  "category": "travel"
+}
+
+Note: Watch the video on async Javascript functions
+JSON:
+{
+  "item_type": "education",
+  "time_bucket": "none",
+  "category": "learning"
+}
+
+Note: My new software license key is SFTW-345-XQ58
+JSON:
+{
+  "item_type": "important_info",
+  "time_bucket": "",
+  "category": "admin"
+}
+
+Note: I want a new electric toothbrush for Christmas
+JSON:
+{
+  "item_type": "idea",
+  "time_bucket": "",
+  "category": "wishlist"
+}
+
+Note: Date Idea go to starbucks with Kathleen
+JSON:
+{
+  "item_type": "idea",
+  "time_bucket": "",
+  "category": "personal"
+}
+
+Note: ${userNote}
+JSON:
+`;
+
+---
+
+**Final Step:** Copy the entire block above, paste it into your `route.ts` file, save the change, and **Redeploy** on Vercel. This is the finished, powerful prompt!
+
+### EXAMPLES
+Note: Test this app at 5p today
+JSON:
+{
+  "item_type": "task",
+  "time_bucket": "2025-12-07T17:00:00-05:00",
+  "category": "admin"
+}
+
+Note: Brainstorm new logo ideas for client
+JSON:
+{
+  "item_type": "task",
+  "time_bucket": "upcoming",
+  "category": "work"
+}
+
+Note: Post project update on Instagram tomorrow at 10am
+JSON:
+{
+  "item_type": "task",
+  "time_bucket": "2025-12-08T10:00:00-05:00",
+  "category": "social_marketing"
+}
+
+Note: ${userNote}
+JSON:
 `;
 
   const res = await fetch(
