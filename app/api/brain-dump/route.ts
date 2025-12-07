@@ -16,7 +16,7 @@ async function analyzeWithGemini(text: string): Promise<AnalysisResult> {
     return {
       item_type: "idea",
       time_bucket: "none",
-      category: ["no_api_key"],
+      category: "no_api_key",
     };
   }
 
@@ -203,11 +203,9 @@ JSON:
     const parsed = JSON.parse(cleanedText);
     const item_type = parsed.item_type ?? "idea";
     const time_bucket = parsed.time_bucket ?? "none";
-    const category: string[] = Array.isArray(parsed.category)
-      ? parsed.category
-      : [];
-
-    return { item_type, time_bucket, category };
+const category = parsed.category ?? "none"; // <<--- Grabs the single word as a string
+    return { item_type, time_bucket, category };
+    
   } catch (e) {
     console.error("Failed to parse Gemini JSON:", rawText);
     return {
@@ -246,7 +244,7 @@ async function appendToSheet(
     new Date().toISOString(),
     analysis.item_type,
     analysis.time_bucket,
-    analysis.category.join(", "),
+    analysis.category, // <--- Just use the string directly
   ];
 
   await sheets.spreadsheets.values.append({
