@@ -3,8 +3,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { GoogleGenAI, Type } from '@google/genai'; 
 
-// Initialize the Gemini client by passing the key from the environment variables
-const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 
 // Define the system instructions (this is the chatbot's personality and job)
 const systemInstruction = `You are a helpful and clear digital assistant that manages a user's Brain Dump. 
@@ -58,6 +56,9 @@ const calendarToolSchema = {
 
 export async function POST(request: NextRequest) {
   try {
+    // ⬅️ ADD THESE LINES HERE!
+    const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY }); 
+    
     const { history, prompt } = await request.json();
 
     // 1. Prepare the chat history for the model
