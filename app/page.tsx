@@ -1,8 +1,8 @@
-'use client';
+'use client'; // This tells Next.js to run this code in the browser
 
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 
-// Type definition for a single brain dump item
+// Type definition for a single brain dump item (6 columns of data)
 interface BrainDumpItem {
   text: string;
   itemType: string;
@@ -18,7 +18,7 @@ const TABS = {
   'Ideas / Info': (item: BrainDumpItem) => item.itemType === 'idea' || item.itemType === 'education' || item.itemType === 'important_info',
 };
 
-// Map of category tabs
+// Map of category tabs (same as your prompt)
 const CATEGORY_TABS = [
   "personal", "work", "creative", "social_marketing", "health", "money", 
   "food", "home", "travel", "learning", "admin", "wishlist"
@@ -32,33 +32,38 @@ export default function DashboardPage() {
   const [activeTab, setActiveTab] = useState('All Notes');
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
 
-  // 1. Function to fetch data from the new API
-  const fetchData = useCallback(async () => {
-    try {
-      setLoading(true);
-      const response = await fetch('/api/read-sheet');
-      if (!response.ok) {
-        throw new Error('Failed to fetch data from sheet API');
+  // Function to fetch data from the new API route
+  useEffect(() => {
+    async function fetchData() {
+      try {
+        setLoading(true);
+        // IMPORTANT: Fetch from the new API route we created
+        const response = await fetch('/api/read-sheet', { cache: 'no-store' }); 
+        
+        if (!response.ok) {
+          // If the server returns an error code (400 or 500)
+          const errText = await response.text();
+          throw new Error(`Server Error: ${response.status} - ${errText}`);
+        }
+        
+        const result = await response.json();
+        // The data is now ready to be saved
+        setData(result.data || []);
+        setError(null);
+      } catch (err: any) {
+        console.error("Error loading dashboard data:", err);
+        setError(`Could not load data. Details: ${err.message}`);
+        setData([]);
+      } finally {
+        setLoading(false);
       }
-      const result = await response.json();
-      setData(result.data || []);
-      setError(null);
-    } catch (err) {
-      setError('Could not load data. Check server logs.');
-      setData([]);
-    } finally {
-      setLoading(false);
     }
+
+    fetchData();
   }, []);
 
-  useEffect(() => {
-    fetchData();
-    // Set a refresh interval (e.g., every 60 seconds)
-    const interval = setInterval(fetchData, 60000);
-    return () => clearInterval(interval);
-  }, [fetchData]);
 
-  // 2. Filter the data based on the active tabs
+  // Filter the data based on the active tabs
   const filteredData = useMemo(() => {
     let result = data;
 
@@ -73,30 +78,37 @@ export default function DashboardPage() {
       result = result.filter(item => item.category === activeCategory);
     }
 
-    // Optional: Sort by time bucket to put 'today' first, then ISO dates
+    // Final sort (puts TODAY items first)
     return result.sort((a, b) => {
       if (a.timeBucket === 'today') return -1;
       if (b.timeBucket === 'today') return 1;
-      return 0; // Don't try to sort ISO dates yet, that's complex
+      if (a.timeBucket === 'this_week') return -1;
+      if (b.timeBucket === 'this_week') return 1;
+      return 0;
     });
   }, [data, activeTab, activeCategory]);
 
-  // 3. Component to display a single item
+
+  // Component to display a single item
   const ItemCard = ({ item }: { item: BrainDumpItem }) => (
-    <div style={{ border: '1px solid #ccc', padding: '10px', margin: '5px', borderRadius: '5px', backgroundColor: '#f9f9f9' }}>
-      <p>**Note:** {item.text}</p>
-      <p>**Type:** {item.itemType} | **Time:** {item.timeBucket} | **Category:** <span style={{ fontWeight: 'bold', color: '#0070f3' }}>{item.category}</span></p>
+    <div style={{ border: '1px solid #ddd', padding: '10px', margin: '5px', borderRadius: '5px', backgroundColor: item.itemType === 'event' ? '#fffbe6' : '#f9f9f9' }}>
+      <div style={{ fontWeight: 'bold', marginBottom: '5px' }}>{item.text}</div>
+      <div style={{ fontSize: '0.8rem', color: '#666' }}>
+        **Type:** {item.itemType} | **Time:** {item.timeBucket} | **Category:** <span style={{ fontWeight: 'bold', color: '#0070f3' }}>{item.category}</span>
+      </div>
     </div>
   );
 
 
   return (
-    <div style={{ padding: '20px', fontFamily: 'Arial, sans-serif' }}>
+    <main style={{ maxWidth: 800, margin: '2rem auto', padding: '1rem' }}>
       <h1>🧠 Brain Dump Dashboard</h1>
-      <p>This page shows all data from your Google Sheet, filtered by type and category.</p>
+      <p style={{ color: '#666', marginBottom: '20px' }}>
+        This page uses your new smart agent data to categorize and display your notes.
+      </p>
 
       {loading && <p>Loading data...</p>}
-      {error && <p style={{ color: 'red' }}>Error: {error}</p>}
+      {error && <p style={{ color: 'red', fontWeight: 'bold' }}>Error: {error}</p>}
       {!loading && !error && (
         <>
           {/* Main Tabs */}
@@ -125,7 +137,7 @@ export default function DashboardPage() {
             {CATEGORY_TABS.map((cat) => (
               <button
                 key={cat}
-                onClick={() => { setActiveCategory(cat); setActiveTab('All Notes'); }} // Switch to All Notes when filtering category
+                onClick={() => { setActiveCategory(cat); setActiveTab('All Notes'); }}
                 style={{ 
                   padding: '5px 10px', 
                   margin: '0 5px 5px 0', 
@@ -151,6 +163,6 @@ export default function DashboardPage() {
           )}
         </>
       )}
-    </div>
+    </main>
   );
 }
