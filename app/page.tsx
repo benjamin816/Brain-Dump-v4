@@ -103,6 +103,33 @@ export default function DashboardPage() {
   return (
     <main style={{ maxWidth: 800, margin: '2rem auto', padding: '1rem' }}>
       <h1>🧠 Brain Dump Dashboard</h1>
+      // Inside app/page.tsx, after the <h1>...</h1> tag
+const GOOGLE_AUTH_URL = '/api/auth/google';
+
+const CalendarConnect = () => (
+  <div style={{ marginBottom: '20px', padding: '10px', border: '1px solid #ffcc00', backgroundColor: '#fff9e6', borderRadius: '5px' }}>
+    <h4>Calendar Status: **Not Connected**</h4>
+    <p>To start adding events, you must securely connect your Google Calendar.</p>
+    <a href={GOOGLE_AUTH_URL} style={{ 
+      padding: '10px 15px', 
+      backgroundColor: '#4285F4', 
+      color: 'white', 
+      textDecoration: 'none', 
+      borderRadius: '5px',
+      fontWeight: 'bold'
+    }}>
+      Sign in with Google
+    </a>
+  </div>
+);
+
+// Call this component inside your return:
+return (
+  <main style={{ maxWidth: 800, margin: '2rem auto', padding: '1rem' }}>
+    <h1>🧠 Brain Dump Dashboard</h1>
+    <CalendarConnect /> {/* <--- NEW LINE HERE! */}
+    <p style={{ color: '#666', marginBottom: '20px' }}>
+// ... rest of the page continues
       <p style={{ color: '#666', marginBottom: '20px' }}>
         This page uses your new smart agent data to categorize and display your notes.
       </p>
