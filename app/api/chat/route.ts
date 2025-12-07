@@ -1,20 +1,27 @@
 // app/api/chat/route.ts
 
 import { NextRequest, NextResponse } from 'next/server';
-import { GoogleGenAI, Type } from '@google/genai'; // ⬅️ ADDED 'Type' HERE!
-
-// app/api/chat/route.ts
+import { GoogleGenAI, Type } from '@google/genai'; 
 
 // Initialize the Gemini client by passing the key from the environment variables
-const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY }); // ⬅️ FIXED!
+const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY }); // ⬅️ Ensure this line is correct
 
-// app/api/chat/route.ts (after imports)
+// ... (Keep the systemInstruction definition here) ...
 
-// NOTE: We will fill out the actual logic for this function later.
-const createCalendarEvent = (title: string, date: string, time: string) => {
-  console.log(`Tool called: createCalendarEvent - Title: ${title}, Date: ${date}, Time: ${time}`);
-  return "Event placeholder created successfully. Waiting for full implementation.";
+// Placeholder for the real calendar creation logic.
+// This function is executed locally when Gemini decides to call it.
+const createCalendarEvent = (title: string, date: string, time: string): string => {
+  // We'll replace this with the actual Google Calendar API call soon.
+  // For now, it returns a structured success message for Gemini to read.
+  return JSON.stringify({
+    success: true,
+    action: "create",
+    details: `Successfully prepared to schedule "${title}" on ${date} at ${time}.`,
+    note: "This is a dummy response. The full calendar logic is not yet implemented."
+  });
 };
+
+// ... (Keep the calendarToolSchema definition here, ensuring Type.STRING, etc., are used) ...
 
 // This is the structure (schema) that describes the function to Gemini
 const calendarToolSchema = {
@@ -45,67 +52,80 @@ const calendarToolSchema = {
 };
 // ... rest of the file continues below ...
 
+// app/api/chat/route.ts (REPLACE THE ENTIRE POST FUNCTION)
+
 export async function POST(request: NextRequest) {
   try {
     const { history, prompt } = await request.json();
 
-    if (!prompt) {
-      return NextResponse.json({ error: "Missing required 'prompt' field." }, { status: 400 });
-    }
-
-    // 1. Define the system instructions (this is the chatbot's personality and job)
-    const systemInstruction = `You are a helpful and clear digital assistant that manages a user's Brain Dump. 
-      Your primary goals are to: 
-      1) Answer questions about their data (once tools are ready).
-      2) Understand their intent (add, remove, find, or alter events/tasks).
-      3) Respond in a fourth-grade reading level.
-      4) You must use the provided tools when the user's request requires action (like adding a task or event).`;
-
-    // 2. Prepare the chat history for the model
-    // The history needs to be in a specific format for Gemini
+    // 1. Prepare the chat history for the model
     const contents = history.map((msg: any) => ({
       role: msg.role,
       parts: [{ text: msg.text }],
     }));
     contents.push({ role: 'user', parts: [{ text: prompt }] });
     
-// app/api/chat/route.ts (inside POST function)
-
-    // 3. Call the model and stream the response back
-    const response = await ai.models.generateContentStream({
+    // 2. First API Call: Ask Gemini for the next step (text or function call)
+    const firstResponse = await ai.models.generateContent({
       model: 'gemini-2.5-flash',
       contents: contents,
       config: {
         systemInstruction: systemInstruction,
-        // ⬇️ ⬇️ ⬇️ ADD THIS LINE ⬇️ ⬇️ ⬇️
-        tools: [calendarToolSchema], 
-        // ⬆️ ⬆️ ⬆️ END OF ADDITION ⬆️ ⬆️ ⬆️
+        tools: [calendarToolSchema],
       },
     });
 
-    // 4. Send the streaming response back to the client
-    const stream = new ReadableStream({
-      async start(controller) {
-        for await (const chunk of response) {
-          // Check for text and send it
-          if (chunk.text) {
-            controller.enqueue(chunk.text);
-          }
-          // NOTE: Tool calls will be handled here later!
-        }
-        controller.close();
-      },
-    });
+    let finalResponse = firstResponse;
 
-    return new NextResponse(stream, {
-      headers: { 'Content-Type': 'text/plain' },
+    // 3. Tool Execution Loop
+    if (firstResponse.functionCalls && firstResponse.functionCalls.length > 0) {
+      const toolCall = firstResponse.functionCalls[0];
+      
+      // We only have one tool right now: createCalendarEvent
+      if (toolCall.name === 'createCalendarEvent') {
+        // Cast arguments for type safety (if your code uses TypeScript)
+        const { title, date, time } = toolCall.args as { title: string, date: string, time: string };
+        
+        // Execute the local function (the placeholder)
+        const toolOutput = createCalendarEvent(title, date, time);
+
+        // Add the function response to the conversation history
+        contents.push({
+          role: 'model',
+          parts: [{ functionCall: toolCall }],
+        });
+        contents.push({
+          role: 'function',
+          parts: [{
+            functionResponse: {
+              name: 'createCalendarEvent',
+              response: toolOutput,
+            },
+          }],
+        });
+
+        // Second API Call: Send the function's output back to Gemini
+        // This makes Gemini generate a human-readable reply.
+        finalResponse = await ai.models.generateContent({
+          model: 'gemini-2.5-flash',
+          contents: contents,
+          config: {
+            systemInstruction: systemInstruction,
+          },
+        });
+      }
+    }
+
+    // 4. Return the Final Text Response (Non-Streaming for stability)
+    const responseText = finalResponse.text || "I was unable to process that request. Please try again or rephrase your request.";
+
+    return new NextResponse(responseText, {
+        headers: { 'Content-Type': 'text/plain' },
     });
 
   } catch (error) {
     console.error("Chat API Error:", error);
-    return NextResponse.json(
-      { error: "Failed to process chat request.", details: (error as Error).message },
-      { status: 500 }
-    );
+    // Return a clearer error message in the final response
+    return new NextResponse(`Sorry, I hit an error: ${error instanceof Error ? error.message : String(error)}`, { status: 500 });
   }
 }
