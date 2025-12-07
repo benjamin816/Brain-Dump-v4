@@ -338,28 +338,46 @@ async function appendToSheet(
 
 // ... (functions like analyzeWithGemini and appendToSheet are above here) ...
 
+// app/api/brain-dump/route.ts
+
+// ... (Your imports and all other functions like analyzeWithGemini, handleCalendarEvent are above here)
+
 export async function POST(request: NextRequest) {
-  try {
-    const body = await request.json();
+  try {
+    // 1. READ THE INCOMING DATA (This part was likely deleted or corrupted)
+    const body = await request.json();
+    
+    // Check if the data has the correct properties
+    if (!body.text) {
+      return NextResponse.json({ error: "Missing required 'text' field in request body." }, { status: 400 });
+    }
 
-    // ... (code to extract text and createdAt is here) ...
+    // 2. DEFINE THE VARIABLES (These are the variables the error says are missing)
+    const { text } = body; // <--- The definition for 'text' is here!
+    
+    // Get the current time for the timestamp column
+    const createdAt = new Date().toISOString(); 
 
-    // Ask Gemini to analyze the note
-    const analysis = await analyzeWithGemini(text);
+    // 3. Ask Gemini to analyze the note
+    const analysis = await analyzeWithGemini(text); // <-- The error was here!
 
-    // Save to Google Sheet with AI columns
-    await appendToSheet(text, createdAt, analysis);
-    
-    // <<< PASTE THE NEW LINE HERE! >>>
-    await handleCalendarEvent(text, analysis); // <--- THIS IS STEP 3
+    // 4. Save to Google Sheet with AI columns
+    await appendToSheet(text, createdAt, analysis);
+    
+    // 5. Check and send to Google Calendar (your new function)
+    await handleCalendarEvent(text, analysis); 
 
-    return NextResponse.json({ ok: true });
-  } catch (error) {
-    // ... (your error handling code is here) ...
-  }
+    return NextResponse.json({ ok: true });
+  } catch (error: any) {
+    console.error("Brain Dump POST Error:", error);
+    return NextResponse.json(
+      { error: "Failed to process brain dump.", details: error.message },
+      { status: 500 }
+    );
+  }
 }
 
-// ... (export async function GET is below here) ...
+// ... (Your GET function is below here)
 
 export async function GET() {
   return NextResponse.json({
