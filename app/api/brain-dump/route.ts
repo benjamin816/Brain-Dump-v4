@@ -4,9 +4,9 @@ import { google } from "googleapis";
 export const runtime = "nodejs";
 
 type AnalysisResult = {
-  item_type: "task" | "event" | "idea" | "education" | "important_info";
-  time_bucket: "today" | "this_week" | "upcoming" | "none";
-  category: string[];
+  item_type: string;
+  time_bucket: string;
+  category: string; // <--- NOW IT EXPECTS A SINGLE WORD
 };
 
 async function analyzeWithGemini(text: string): Promise<AnalysisResult> {
