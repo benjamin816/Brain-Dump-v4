@@ -12,11 +12,11 @@ type AnalysisResult = {
 async function analyzeWithGemini(text: string): Promise<AnalysisResult> {
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) {
-    // Fallback if Gemini isn’t configured yet
+    console.error("No GEMINI_API_KEY set.");
     return {
       item_type: "idea",
       time_bucket: "none",
-      categories: [],
+      categories: ["no_api_key"],
     };
   }
 
@@ -31,25 +31,19 @@ Given ONE short note, you must decide:
 3) "categories" (1–3 simple tags)
 
 ### ITEM TYPE (CHOOSE ONE ONLY)
-- "task"           = something the user should do
-- "event"          = something happening at a specific time or place
-- "idea"           = brainstorm, optional future thing, not clearly scheduled
-- "education"      = notes, learning material
+- "task"           = something the user should do
+- "event"          = something happening at a specific time or place
+- "idea"           = brainstorm, optional future thing, not clearly scheduled
+- "education"      = notes, learning material
 - "important_info" = facts or info they want to remember
 
 If the note contains a clear time expression like "tomorrow", a clock time, a specific date, or "next week", it is usually a "task" or "event", NOT an "idea".
 
 ### TIME BUCKET (CHOOSE ONE ONLY)
-- "today"      = clearly meant for today (e.g. "today", "tonight", "this afternoon")
-- "this_week"  = clearly this week (e.g. "tomorrow", "later this week", "in a few days")
-- "upcoming"   = clearly in the future but not specifically today/this week (e.g. any explicit future date farther out)
-- "none"       = no timing info at all
-
-Examples:
-- "Email client today"         → time_bucket = "today"
-- "Dentist appointment tomorrow at 3pm" → time_bucket = "this_week"
-- "Trip to New York in October" → time_bucket = "upcoming"
-- "I like the idea of buying a duplex someday" → time_bucket = "none"
+- "today"      = clearly meant for today (e.g. "today", "tonight", "this afternoon")
+- "this_week"  = clearly this week (e.g. "tomorrow", "later this week", "in a few days")
+- "upcoming"   = clearly in the future but not specifically today/this week (e.g. any explicit future date farther out)
+- "none"       = no timing info at all
 
 ### CATEGORIES (ALWAYS 1–3 TAGS)
 Pick 1–3 single-word, lowercase tags from or similar to:
@@ -57,36 +51,13 @@ Pick 1–3 single-word, lowercase tags from or similar to:
 
 Choose at least one category. Never return an empty array.
 
-Examples:
-- "Dentist appointment tomorrow at 3pm"
-  {
-    "item_type": "event",
-    "time_bucket": "this_week",
-    "categories": ["health"]
-  }
-
-- "Finish editing Raleigh NC YouTube video tonight"
-  {
-    "item_type": "task",
-    "time_bucket": "today",
-    "categories": ["work"]
-  }
-
-- "Eat a taco tomorrow at 4p"
-  {
-    "item_type": "event",
-    "time_bucket": "this_week",
-    "categories": ["personal", "food"]
-  }
-
 ### OUTPUT FORMAT (IMPORTANT)
 Return ONLY valid JSON, no backticks, no markdown, no explanation.
-The JSON must match exactly this shape:
 
 {
-  "item_type": "task" | "event" | "idea" | "education" | "important_info",
-  "time_bucket": "today" | "this_week" | "upcoming" | "none",
-  "categories": ["tag1", "tag2"]
+  "item_type": "task" | "event" | "idea" | "education" | "important_info",
+  "time_bucket": "today" | "this_week" | "upcoming" | "none",
+  "categories": ["tag1", "tag2"]
 }
 
 Now classify this note:
@@ -99,30 +70,24 @@ Now classify this note:
       apiKey,
     {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        contents: [
-          {
-            parts: [{ text: prompt }],
-          },
-        ],
+        contents: [{ parts: [{ text: prompt }] }],
       }),
     }
   );
 
   if (!res.ok) {
-    console.error("Gemini API error:", await res.text());
+    const errText = await res.text();
+    console.error("Gemini API error:", errText);
     return {
       item_type: "idea",
       time_bucket: "none",
-      categories: [],
+      categories: ["http_error"],
     };
   }
 
   const data = await res.json();
-
   const rawText: string =
     data?.candidates?.[0]?.content?.parts?.[0]?.text ?? "";
 
@@ -140,7 +105,7 @@ Now classify this note:
     return {
       item_type: "idea",
       time_bucket: "none",
-      categories: [],
+      categories: ["parse_error"],
     };
   }
 }
