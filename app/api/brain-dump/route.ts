@@ -164,7 +164,7 @@ JSON:
   "category": "personal"
 }
 
-Note: ${userNote}
+Note: ${text}
 JSON:
 `;
 
