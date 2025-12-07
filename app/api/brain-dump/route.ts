@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { google } from "googleapis";
+import { OAuth2Client } from 'google-auth-library'; // <--- ADD THIS LINE
+// ... other imports if you have them
 
 export const runtime = "nodejs";
 
@@ -216,6 +218,78 @@ const category = parsed.category ?? "none"; // <<--- Grabs the single word as a 
   }
 }
 
+// Inside app/api/brain-dump/route.ts
+
+// The AnalysisResult type is defined earlier, so we can use it here:
+/*
+type AnalysisResult = {
+  item_type: "task" | "event" | "idea" | "education" | "important_info";
+  time_bucket: "today" | "this_week" | "upcoming" | "none";
+  category: string;
+};
+*/
+
+async function handleCalendarEvent(
+  text: string,
+  analysis: AnalysisResult
+) {
+  // 1. Only process notes with a specific time/date (ISO 8601 string)
+  if (analysis.item_type !== 'event' && analysis.item_type !== 'task') {
+    return;
+  }
+  if (!analysis.time_bucket.includes('-')) {
+    return;
+  }
+
+  // 2. --- TEMPORARY MANUAL TOKEN SETUP ---
+  // 🚨 PASTE YOUR LATEST, CORRECTED ACCESS TOKEN HERE!
+  // The one you got with the 'access_type=offline' URL.
+  const MANUAL_ACCESS_TOKEN = "PASTE_YOUR_VERY_LONG_ACCESS_TOKEN_HERE"; 
+  
+  if (MANUAL_ACCESS_TOKEN === "PASTE_YOUR_VERY_LONG_ACCESS_TOKEN_HERE") {
+    console.log("Skipping Calendar Event: Manual token is not set.");
+    return;
+  }
+
+  // Create a client to sign in to Google, using the token you pasted in
+  const auth = new OAuth2Client(); 
+  auth.setCredentials({ 
+    access_token: MANUAL_ACCESS_TOKEN 
+  });
+  // --- END MANUAL TOKEN SETUP ---
+  
+
+  const calendar = google.calendar({ version: 'v3', auth });
+
+  // Determine a quick end time (e.g., 30 minutes later)
+  const startTime = new Date(analysis.time_bucket);
+  const endTime = new Date(startTime.getTime() + 30 * 60000); // Add 30 minutes (30 * 60 seconds * 1000 milliseconds)
+
+  // The event body based on your analyzed data
+  const eventBody = {
+    summary: text, 
+    description: `Brain Dump Category: ${analysis.category}`,
+    start: {
+      dateTime: startTime.toISOString(),
+      timeZone: 'America/New_York', // Use your time zone
+    },
+    end: {
+      dateTime: endTime.toISOString(),
+      timeZone: 'America/New_York',
+    },
+  };
+
+  try {
+    const res = await calendar.events.insert({
+      calendarId: 'primary', 
+      requestBody: eventBody,
+    });
+    console.log('✅ Calendar event created:', res.data.htmlLink);
+  } catch (error) {
+    console.error('❌ Failed to create calendar event:', error);
+  }
+}
+
 async function appendToSheet(
   text: string,
   createdAt: string | null,
@@ -257,37 +331,32 @@ async function appendToSheet(
   });
 }
 
+// app/api/brain-dump/route.ts
+
+// ... (functions like analyzeWithGemini and appendToSheet are above here) ...
+
 export async function POST(request: NextRequest) {
-  try {
-    const body = await request.json();
+  try {
+    const body = await request.json();
 
-    const text =
-      typeof body.text === "string" ? body.text.trim() : "";
-    const createdAt =
-      typeof body.created_at === "string" ? body.created_at : null;
+    // ... (code to extract text and createdAt is here) ...
 
-    if (!text) {
-      return NextResponse.json(
-        { ok: false, error: "Missing 'text' in request body." },
-        { status: 400 }
-      );
-    }
+    // Ask Gemini to analyze the note
+    const analysis = await analyzeWithGemini(text);
 
-    // Ask Gemini to analyze the note
-    const analysis = await analyzeWithGemini(text);
+    // Save to Google Sheet with AI columns
+    await appendToSheet(text, createdAt, analysis);
+    
+    // <<< PASTE THE NEW LINE HERE! >>>
+    await handleCalendarEvent(text, analysis); // <--- THIS IS STEP 3
 
-    // Save to Google Sheet with AI columns
-    await appendToSheet(text, createdAt, analysis);
-
-    return NextResponse.json({ ok: true });
-  } catch (error) {
-    console.error("Error in /api/brain-dump:", error);
-    return NextResponse.json(
-      { ok: false, error: "Server error." },
-      { status: 500 }
-    );
-  }
+    return NextResponse.json({ ok: true });
+  } catch (error) {
+    // ... (your error handling code is here) ...
+  }
 }
+
+// ... (export async function GET is below here) ...
 
 export async function GET() {
   return NextResponse.json({
