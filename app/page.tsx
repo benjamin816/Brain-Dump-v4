@@ -130,36 +130,9 @@ export default function DashboardPage() {
     </div>
   );
 
-  // ⬇️ ⬇️ ⬇️ THE FIXED CALENDAR CONNECT LOGIC (Moved outside the return block) ⬇️ ⬇️ ⬇️
-
-  // The URL for the sign-in API route we are building
-  const GOOGLE_AUTH_URL = '/api/auth/google';
-
-  // Component for the Google Calendar connection box
-  const CalendarConnect = () => (
-    <div style={{ marginBottom: '20px', padding: '10px', border: '1px solid #ffcc00', backgroundColor: '#fff9e6', borderRadius: '5px' }}>
-      <h4>Calendar Status: **Not Connected**</h4>
-      <p>To start adding events, you must securely connect your Google Calendar.</p>
-      <a href={GOOGLE_AUTH_URL} style={{ 
-        padding: '10px 15px', 
-        backgroundColor: '#4285F4', 
-        color: 'white', 
-        textDecoration: 'none', 
-        borderRadius: '5px',
-        fontWeight: 'bold'
-      }}>
-        Sign in with Google
-      </a>
-    </div>
-  );
-  // ⬆️ ⬆️ ⬆️ END OF FIXED CALENDAR CONNECT LOGIC ⬆️ ⬆️ ⬆️
-
-
   return (
     <main style={{ maxWidth: 800, margin: '2rem auto', padding: '1rem' }}>
       <h1>🧠 Brain Dump Dashboard</h1>
-      
-      <CalendarConnect /> {/* <--- The Calendar Connect Component is now placed correctly */}
 
       <p style={{ color: '#666', marginBottom: '20px' }}>
         This page uses your new smart agent data to categorize and display your notes.
