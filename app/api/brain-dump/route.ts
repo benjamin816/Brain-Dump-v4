@@ -12,7 +12,6 @@ type AnalysisResult = {
 async function analyzeWithGemini(text: string): Promise<AnalysisResult> {
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) {
-    // Fallback if Gemini isn’t configured yet
     return {
       item_type: "idea",
       time_bucket: "none",
@@ -21,36 +20,60 @@ async function analyzeWithGemini(text: string): Promise<AnalysisResult> {
   }
 
   const prompt = `
-You are helping organize personal "brain dump" notes.
+You classify short notes into structured JSON fields.
 
-Given the following note text, decide:
+### RULES ###
+1. ALWAYS return valid JSON — no commentary.
+2. ALWAYS choose an item_type.
+3. ALWAYS choose a time_bucket IF there is any time cue.
+4. ALWAYS assign at least one category.
+5. If the text includes a date, time, "tomorrow", "next week", or similar → item_type=task or event.
 
-1) item_type: one of
-   - "task" (something to do)
-   - "event" (something happening at a specific time or place)
-   - "idea" (brainstorm, thought, future possibility)
-   - "education" (notes, learning material)
-   - "important_info" (facts, reference info to remember)
+### DEFINITIONS ###
+task = something the person should do  
+event = something at a specific date/time/location  
+idea = brainstorming, optional action  
+education = learning notes  
+important_info = facts to remember
 
-2) time_bucket: one of
-   - "today" (clearly meant for today)
-   - "this_week" (within this week)
-   - "upcoming" (future, but not clearly today or this week)
-   - "none" (no clear timing)
+### TIME BUCKET RULES ###
+If note says:
+- "today", "this afternoon", "tonight" → time_bucket="today"
+- "tomorrow", "next few days" → "this_week"
+- Any specific time/date in future → "upcoming"
+- No timing → "none"
 
-3) categories: a short list of 1-4 topic tags (lowercase, single words) like:
-   ["work", "clients", "health", "money", "home", "travel"]
+### CATEGORIES ###
+Pick 1–3 single-word tags:
+["personal", "work", "health", "money", "food", "home", "travel", "family", "clients", "learning"]
 
-Return ONLY valid JSON in this format and nothing else:
-
+### EXAMPLES ###
+Example input: "Dentist appointment tomorrow at 3pm"
+JSON output:
 {
-  "item_type": "task" | "event" | "idea" | "education" | "important_info",
-  "time_bucket": "today" | "this_week" | "upcoming" | "none",
-  "categories": ["tag1", "tag2"]
+  "item_type": "event",
+  "time_bucket": "this_week",
+  "categories": ["health"]
 }
 
-Note text:
-"""${text}"""
+Example input: "Finish editing Raleigh NC YouTube video tonight"
+JSON output:
+{
+  "item_type": "task",
+  "time_bucket": "today",
+  "categories": ["work"]
+}
+
+Example input: "Eat a taco tomorrow at 4p"
+JSON output:
+{
+  "item_type": "event",
+  "time_bucket": "this_week",
+  "categories": ["personal", "food"]
+}
+
+### NOW CLASSIFY THIS NOTE ###
+${text}
 `;
 
   const res = await fetch(
@@ -58,15 +81,9 @@ Note text:
       apiKey,
     {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        contents: [
-          {
-            parts: [{ text: prompt }],
-          },
-        ],
+        contents: [{ parts: [{ text: prompt }] }],
       }),
     }
   );
@@ -81,19 +98,16 @@ Note text:
   }
 
   const data = await res.json();
-
   const rawText: string =
     data?.candidates?.[0]?.content?.parts?.[0]?.text ?? "";
 
   try {
     const parsed = JSON.parse(rawText);
-    const item_type = parsed.item_type ?? "idea";
-    const time_bucket = parsed.time_bucket ?? "none";
-    const categories: string[] = Array.isArray(parsed.categories)
-      ? parsed.categories
-      : [];
-
-    return { item_type, time_bucket, categories };
+    return {
+      item_type: parsed.item_type ?? "idea",
+      time_bucket: parsed.time_bucket ?? "none",
+      categories: Array.isArray(parsed.categories) ? parsed.categories : [],
+    };
   } catch (e) {
     console.error("Failed to parse Gemini JSON:", rawText);
     return {
@@ -112,10 +126,6 @@ async function appendToSheet(
   const email = process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL;
   const privateKey = process.env.GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY;
   const spreadsheetId = process.env.GOOGLE_SHEETS_ID;
-
-  if (!email || !privateKey || !spreadsheetId) {
-    throw new Error("Missing Google Sheets environment variables.");
-  }
 
   const auth = new google.auth.JWT(
     email,
@@ -137,43 +147,34 @@ async function appendToSheet(
 
   await sheets.spreadsheets.values.append({
     spreadsheetId,
-    range: "Sheet1!A:F", // now writing 6 columns
+    range: "Sheet1!A:F",
     valueInputOption: "RAW",
-    requestBody: {
-      values: [row],
-    },
+    requestBody: { values: [row] },
   });
 }
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-
-    const text =
-      typeof body.text === "string" ? body.text.trim() : "";
+    const text = typeof body.text === "string" ? body.text.trim() : "";
     const createdAt =
       typeof body.created_at === "string" ? body.created_at : null;
 
     if (!text) {
       return NextResponse.json(
-        { ok: false, error: "Missing 'text' in request body." },
+        { ok: false, error: "Missing 'text'." },
         { status: 400 }
       );
     }
 
-    // Ask Gemini to analyze the note
     const analysis = await analyzeWithGemini(text);
 
-    // Save to Google Sheet with AI columns
     await appendToSheet(text, createdAt, analysis);
 
     return NextResponse.json({ ok: true });
   } catch (error) {
     console.error("Error in /api/brain-dump:", error);
-    return NextResponse.json(
-      { ok: false, error: "Server error." },
-      { status: 500 }
-    );
+    return NextResponse.json({ ok: false }, { status: 500 });
   }
 }
 
