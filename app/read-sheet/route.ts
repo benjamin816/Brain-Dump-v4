@@ -12,11 +12,11 @@ async function readSheetData() {
     throw new Error("Missing Google Sheets environment variables.");
   }
 
-  const auth = new google.auth.JWT(
+const auth = new google.auth.JWT(
     email,
     undefined,
-    privateKey.replace(/\\n/g, "\n"),
-    ["https://www.googleapis.com/auth/spreadsheets.readonly"] // Use readonly scope for reading
+    privateKey.split(String.raw`\n`).join('\n'), // <--- Try this new line
+    ["https://www.googleapis.com/auth/spreadsheets.readonly"]
   );
 
   const sheets = google.sheets({ version: "v4", auth });
