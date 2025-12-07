@@ -6,7 +6,7 @@ export const runtime = "nodejs";
 type AnalysisResult = {
   item_type: "task" | "event" | "idea" | "education" | "important_info";
   time_bucket: "today" | "this_week" | "upcoming" | "none";
-  categories: string[];
+  category: string[];
 };
 
 async function analyzeWithGemini(text: string): Promise<AnalysisResult> {
@@ -16,7 +16,7 @@ async function analyzeWithGemini(text: string): Promise<AnalysisResult> {
     return {
       item_type: "idea",
       time_bucket: "none",
-      categories: ["no_api_key"],
+      category: ["no_api_key"],
     };
   }
 
@@ -203,17 +203,17 @@ JSON:
     const parsed = JSON.parse(rawText);
     const item_type = parsed.item_type ?? "idea";
     const time_bucket = parsed.time_bucket ?? "none";
-    const categories: string[] = Array.isArray(parsed.categories)
-      ? parsed.categories
+    const category: string[] = Array.isArray(parsed.category)
+      ? parsed.category
       : [];
 
-    return { item_type, time_bucket, categories };
+    return { item_type, time_bucket, category };
   } catch (e) {
     console.error("Failed to parse Gemini JSON:", rawText);
     return {
       item_type: "idea",
       time_bucket: "none",
-      categories: ["parse_error"],
+      category: ["parse_error"],
     };
   }
 }
@@ -246,7 +246,7 @@ async function appendToSheet(
     new Date().toISOString(),
     analysis.item_type,
     analysis.time_bucket,
-    analysis.categories.join(", "),
+    analysis.category.join(", "),
   ];
 
   await sheets.spreadsheets.values.append({
