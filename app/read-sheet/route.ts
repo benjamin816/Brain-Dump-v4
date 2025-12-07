@@ -15,7 +15,7 @@ async function readSheetData() {
 const auth = new google.auth.JWT(
     email,
     undefined,
-    privateKey.split(String.raw`\n`).join('\n'), // <--- Try this new line
+    privateKey.replace(/\\n/g, "\n"),
     ["https://www.googleapis.com/auth/spreadsheets.readonly"]
   );
 
