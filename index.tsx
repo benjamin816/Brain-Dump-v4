@@ -1,4 +1,3 @@
-// This file's content has been cleared.
-// A Next.js App Router project uses `app/layout.tsx` and `app/page.tsx` as its primary entry points, not a root-level `index.tsx`.
+// This file is intentionally left blank. Its presence is non-standard for a Next.js App Router project.
 
 // AI Studio always uses an `index.tsx` file for all project types.
