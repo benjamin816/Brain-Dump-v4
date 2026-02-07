@@ -1,3 +1,7 @@
-// This file's original content was removed to resolve TypeScript errors
-// related to missing type definitions. This is likely caused by an
-// incomplete project setup (e.g., missing tsconfig.json).
+// The triple-slash directives for Next.js types were removed from this file.
+// They were causing errors, likely due to an environment where the Next.js 
+// TypeScript plugin may not be active. Next.js types should be picked up 
+// automatically from the tsconfig.json configuration in a standard setup.
+
+// NOTE: This file should not be edited
+// see https://nextjs.org/docs/basic-features/typescript for more information.
