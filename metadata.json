@@ -1,5 +1,5 @@
 {
-  "note": "This file is not a standard part of a Next.js project and its original content has been cleared to align with create-next-app conventions.",
+  "note": "This file is not part of a standard Next.js project. Its content has been cleared to prevent build system conflicts.",
   "requestFramePermissions": [],
   "name": "",
   "description": ""
