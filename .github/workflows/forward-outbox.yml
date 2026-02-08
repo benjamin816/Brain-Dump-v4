@@ -1,0 +1,21 @@
+name: Forward Outbox Pending
+
+on:
+  schedule:
+    - cron: "*/10 * * * *"
+  workflow_dispatch: {}
+
+jobs:
+  forward:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Call forward-pending endpoint
+        env:
+          BASE_URL: ${{ secrets.BRAINDUMP_BASE_URL }}
+          KEY: ${{ secrets.OUTBOX_CRON_KEY }}
+        run: |
+          URL="${BASE_URL}/api/forward-pending?key=${KEY}"
+          echo "Calling forward-pending endpoint"
+          curl -f -sS --max-time 20 "$URL"
